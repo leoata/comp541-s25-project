@@ -485,11 +485,11 @@ get_accel:
 	jr	$ra
 
 get_accelX:
-	li  $v0, 0x00FE
+	li  $v0, 0x00FF
 	jr	$ra
 
 get_accelY:
-	li  $v0, 0x00FF
+	li  $v0, 0x00FC
 	jr	$ra
 
 	#####################################
