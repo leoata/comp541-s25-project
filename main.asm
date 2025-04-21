@@ -338,7 +338,7 @@ after_win_checks:
 after_movement_speed_adjustments:
 	
 	
-	add $s2, $s0, $s7 # targetX = preciseBallX + preciseAccelY (accelY is actually X in game, direction is inverted)
+	sub $s2, $s0, $s7 # targetX = preciseBallX + preciseAccelY (accelY is actually X in game, direction is inverted)
 	add $s3, $s1, $s6 # targetY = preciseBallY + preciseAccelX (accelX is actually Y in game)
 	
 	
