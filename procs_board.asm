@@ -391,3 +391,39 @@ sound_off:
 put_leds:
 	sw	$a0, leds_mmio($0)
 	jr	$ra
+	
+.eqv sevenseg_mmio 0x1000000C
+	#####################################
+	# proc put_7seg                     #
+	#				    #
+	#                                   #
+	#   $a0: digitselect (number)       #
+	#   $a1: num_to_display		    #
+	#                                   #
+	#####################################
+.text
+put_7seg:
+	addi	$sp, $sp, -16
+	sw	$ra, 12($sp)
+	sw	$t0, 8($sp)
+	sw	$t1, 4($sp)
+	sw	$t2, 0($sp)
+	
+	addi  $t0, $a0, -1    # $t0 = n - 1   (shift count)
+    	addi    $t1, $zero, 1         # $t1 = 0x00000001
+    	sllv  $a0, $t1, $t0  # $a0 = 1 << (n-1)
+   	andi  $a0, $a0, 0x00FF  # mask to lowest 8 bits
+   	sll $a0, $a0, 4
+   	
+   	andi  $a1, $a1, 0x000F  # ensure $a1 is only 4 bits
+   	or $t2, $a0, $a1
+    
+	sw	$t2, sevenseg_mmio($0)
+	
+	
+	lw	$ra, 12($sp)
+	lw	$t0, 8($sp)
+	lw	$t1, 4($sp)
+	lw	$t2, 0($sp)
+	addi	$sp, $sp, 16
+	jr	$ra
