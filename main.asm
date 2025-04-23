@@ -79,6 +79,12 @@ maze:
 .word 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 
 
+# each entry: dr, dc
+dirTable:
+    .word -1,  0    # up
+    .word  1,  0    # down
+    .word  0, -1    # left
+    .word  0,  1    # right
 
 .text 0x00400000                # Start of instruction memory
 .globl main
@@ -105,12 +111,13 @@ main:
                                 #   because $sp is decremented first.
     addi    $fp, $sp, -4        # Set $fp to the start of main's stack frame
     
-    
+    # fill maze
     la   $s6, maze         # Load address of maze array
-    
-    add   $a2, $zero, $zero    # i = 0
     lw    $s2, n               # s2 = number of rows (n)
     lw    $s3, k               # s3 = number of cols (k)
+    
+    
+    add   $a2, $zero, $zero    # i = 0
     addi  $s4, $zero, 0        # s4 = row offset/maze index
 
 outer_maze_display_loop:
@@ -255,7 +262,7 @@ hud_loop:
 	addi $a1, $a1, 1
 	bne $a1, 40, hud_loop
 	
-
+# EVERYTHING BEFORE THIS LINE WORKING
 
     
 ##################################################
@@ -281,6 +288,8 @@ first_game_loop:
     add $s4, $zero, $zero # +1 = speed buff, 0 = nothing, -1 = slow debuff
     add $s5, $zero, $zero # wall breaker uses left
 game_loop:
+	addi $a0, $zero, 0x00000000
+	jal put_leds
 	jal sound_off
 	
 	lw $t0, n
@@ -338,8 +347,8 @@ after_win_checks:
 after_movement_speed_adjustments:
 	
 	
-	sub $s2, $s0, $s7 # targetX = preciseBallX + preciseAccelY (accelY is actually X in game, direction is inverted)
-	add $s3, $s1, $s6 # targetY = preciseBallY + preciseAccelX (accelX is actually Y in game)
+	add $s2, $s0, $s7 # targetX = preciseBallX + preciseAccelY (accelY is actually X in game, direction is inverted)
+	sub $s3, $s1, $s6 # targetY = preciseBallY + preciseAccelX (accelX is actually Y in game)
 	
 	
 	srl $a1, $s2, 6
@@ -438,6 +447,9 @@ collision_case4: # char 4 == slow debuff
 	subi $s4, $zero, 1 # set speed buff/debuff val to -1
 	jal update_speed_hud
 	
+	addi $a0, $zero, 0xF0F0F0F0
+	jal put_leds
+	
 	addi $a0, $zero, 17500
 	jal put_sound
 	
@@ -447,6 +459,9 @@ collision_case3: # char 3 == super speed
 	addi $s4, $zero, 1 # set speed buff/debuff val to +1
 	jal update_speed_hud
 	
+	addi $a0, $zero, 0xFFFFFFFF
+	jal put_leds
+	
 	addi $a0, $zero, 10000
 	jal put_sound
 	
@@ -455,6 +470,9 @@ collision_case3: # char 3 == super speed
 collision_case5: # char 5 == wall breaker
 	addi $s5, $zero, 5
 	jal update_wallbreaker_hud
+	
+	addi $a0, $zero, 0xFFFFFFFF
+	jal put_leds
 	
 	addi $a0, $zero, 10000
 	jal put_sound
@@ -563,27 +581,22 @@ clear_old_speed_hud:
 	addi $a2, $zero, 29
 	jal putChar_atXY
 	
-	addi $a0, $zero, 0
 	addi $a1, $zero, 4
 	addi $a2, $zero, 29
 	jal putChar_atXY
 	
-	addi $a0, $zero, 0
 	addi $a1, $zero, 5
 	addi $a2, $zero, 29
 	jal putChar_atXY
 	
-	addi $a0, $zero, 0
 	addi $a1, $zero, 6
 	addi $a2, $zero, 29
 	jal putChar_atXY
 	
-	addi $a0, $zero, 0
 	addi $a1, $zero, 7
 	addi $a2, $zero, 29
 	jal putChar_atXY
 	
-	addi $a0, $zero, 0
 	addi $a1, $zero, 8
 	addi $a2, $zero, 29
 	jal putChar_atXY
@@ -661,6 +674,9 @@ update_wallbreaker_hud_none:
 	
 
 game_won:
+	addi $a0, $zero, 0xFFFFFFFF
+	jal put_leds
+
 	addi $a2, $zero, 0
 	lw $s2, n
 	lw $s3, k
@@ -816,6 +832,21 @@ second_stage_game_won:
 	jal putChar_atXY
 	j end
 	
+#---------------------------------------------------------
+# rand:  a simple 32-bit xorshift, returns new seed in $v0
+#   seed lives in memory word “seed”.  uses only shifts/xor.
+#---------------------------------------------------------
+rand:
+    lw    $t0, seed
+    sll   $t1, $t0,  13
+    xor   $t0, $t0, $t1
+    sra   $t2, $t0,  17
+    xor   $t0, $t0, $t2
+    sll   $t1, $t0,   5
+    xor   $t0, $t0, $t1
+    sw    $t0, seed
+    move  $v0, $t0
+    jr    $ra
 	
     ###############################
     # END using infinite loop     #
